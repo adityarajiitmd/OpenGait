@@ -1,3 +1,4 @@
+# this is for training purpose script
 # # **************** For CASIA-B ****************
 # # Baseline
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 opengait/main.py --cfgs ./configs/baseline/baseline.yaml --phase train
