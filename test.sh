@@ -1,3 +1,13 @@
+# pytorch framework
+# this is for testing purpose script
+# CUDA_VISIBLE_DEVICES specifies which GPUs to use for the experiment. The number of GPUs varies depending on the experiment and dataset.
+# The commands use torch.distributed.launch which indicates distributed training or testing across multiple GPUs.
+# --cfgs argument points to the configuration file (YAML) for the specific experiment.
+# When running distributed training/testing across multiple machines (nodes), processes (workers) need to communicate and coordinate their actions.
+# master_port defines a specific port on which a process, called the master process, listens for communication from other worker processes.
+# nproc_per_node This argument specifies the number of processes (workers) to launch per node when using torch.distributed.launch. Each process will handle training/testing on a single GPU.
+
+
 # # **************** For CASIA-B ****************
 # # Baseline
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 opengait/main.py --cfgs ./configs/baseline/baseline.yaml --phase test
