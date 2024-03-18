@@ -131,6 +131,9 @@ class BaseModel(MetaModel, nn.Module):
 
     """
 
+ # this initializer method handles various aspects of model setup, including configuration parsing, network and optimizer creation, data loader setup, device placement, and potential training initiation and checkpoint resume.
+# It ensures the model is ready for training or evaluation based on the provided configuration.
+
     def __init__(self, cfgs, training):
         """Initialize the base model.
 
@@ -184,6 +187,9 @@ class BaseModel(MetaModel, nn.Module):
         if restore_hint != 0:
             self.resume_ckpt(restore_hint)
 
+ # this method provides a flexible way to define backbone networks for the model.
+# It can handle both single backbone architectures specified in dictionaries and composite backbones defined as lists of configurations. 
+# This allows for building a variety of model architectures depending on the use case.
     def get_backbone(self, backbone_cfg):
         """Get the backbone of the model."""
         if is_dict(backbone_cfg):
@@ -197,10 +203,12 @@ class BaseModel(MetaModel, nn.Module):
         raise ValueError(
             "Error type for -Backbone-Cfg-, supported: (A list of) dict.")
 
+# This code snippet only handles the first step of network building, which involves potentially creating a backbone network.
     def build_network(self, model_cfg):
         if 'backbone_cfg' in model_cfg.keys():
             self.Backbone = self.get_backbone(model_cfg['backbone_cfg'])
 
+# This method is responsible for initializing the weights and biases of the model's layers.
     def init_parameters(self):
         for m in self.modules():
             if isinstance(m, (nn.Conv3d, nn.Conv2d, nn.Conv1d)):
@@ -216,6 +224,7 @@ class BaseModel(MetaModel, nn.Module):
                     nn.init.normal_(m.weight.data, 1.0, 0.02)
                     nn.init.constant_(m.bias.data, 0.0)
 
+ # This method is responsible for creating a data loader object used for fetching and preparing batches of data during training or evaluation.
     def get_loader(self, data_cfg, train=True):
         sampler_cfg = self.cfgs['trainer_cfg']['sampler'] if train else self.cfgs['evaluator_cfg']['sampler']
         dataset = DataSet(data_cfg, train)
@@ -232,6 +241,8 @@ class BaseModel(MetaModel, nn.Module):
             num_workers=data_cfg['num_workers'])
         return loader
 
+ # this method retrieves the appropriate optimizer class based on the configuration, filters the relevant parameters
+# and configuration options, and creates an optimizer object to drive the training process.
     def get_optimizer(self, optimizer_cfg):
         self.msg_mgr.log_info(optimizer_cfg)
         optimizer = get_attr_from([optim], optimizer_cfg['solver'])
@@ -240,6 +251,8 @@ class BaseModel(MetaModel, nn.Module):
             filter(lambda p: p.requires_grad, self.parameters()), **valid_arg)
         return optimizer
 
+ # this method retrieves the appropriate learning rate scheduler class, provides the optimizer object for potential interactions,
+    # and creates a scheduler to manage learning rate adjustments throughout the training process.
     def get_scheduler(self, scheduler_cfg):
         self.msg_mgr.log_info(scheduler_cfg)
         Scheduler = get_attr_from(
@@ -248,6 +261,8 @@ class BaseModel(MetaModel, nn.Module):
         scheduler = Scheduler(self.optimizer, **valid_arg)
         return scheduler
 
+# this method ensures that the model's state, optimizer state, scheduler state, and current iteration are saved periodically during training.
+# This allows for resuming training from the saved checkpoint in case of interruptions or errors.
     def save_ckpt(self, iteration):
         if torch.distributed.get_rank() == 0:
             mkdir(osp.join(self.save_path, "checkpoints/"))
@@ -260,6 +275,8 @@ class BaseModel(MetaModel, nn.Module):
             torch.save(checkpoint,
                        osp.join(self.save_path, 'checkpoints/{}-{:0>5}.pt'.format(save_name, iteration)))
 
+# In summary, this method handles loading a model checkpoint. It allows for strict or non-strict loading of the model state dictionary.
+# Additionally, it provides the option to load the optimizer and scheduler state from the checkpoint if they are present and the corresponding reset flags in the configuration are disabled.
     def _load_ckpt(self, save_name):
         load_ckpt_strict = self.engine_cfg['restore_ckpt_strict']
 
@@ -287,6 +304,8 @@ class BaseModel(MetaModel, nn.Module):
                     "Restore NO Scheduler from %s !!!" % save_name)
         self.msg_mgr.log_info("Restore Parameters from %s !!!" % save_name)
 
+# Overall, this method provides flexibility for resuming training from a checkpoint. It can handle restoration based on the checkpoint iteration number or by specifying the entire checkpoint file path.
+# It then delegates the actual loading process to the _load_ckpt method.
     def resume_ckpt(self, restore_hint):
         if isinstance(restore_hint, int):
             save_name = self.engine_cfg['save_name']
@@ -301,12 +320,15 @@ class BaseModel(MetaModel, nn.Module):
                 "Error type for -Restore_Hint-, supported: int or string.")
         self._load_ckpt(save_name)
 
+# Overall, the fix_BN method offers a way to control the behavior of BatchNorm layers during training or evaluation.
+# The specific use case and intended effect depend on the model architecture and training strategy.
     def fix_BN(self):
         for module in self.modules():
             classname = module.__class__.__name__
             if classname.find('BatchNorm') != -1:
                 module.eval()
 
+ # By applying transformations and handling sequence lengths, it ensures the data is in a suitable format for the model and potentially improves the training process or prediction accuracy.
     def inputs_pretreament(self, inputs):
         """Conduct transforms on input data.
 
@@ -341,6 +363,8 @@ class BaseModel(MetaModel, nn.Module):
         del seqs
         return ipts, labs, typs, vies, seqL
 
+# he train_step method is responsible for the core optimization process during training. It calculates gradients, updates the model's parameters using the optimizer, and updates the learning rate using the scheduler.
+# The mixed precision training logic adds an additional layer of handling gradients and loss scaling for improved stability.
     def train_step(self, loss_sum) -> bool:
         """Conduct loss_sum.backward(), self.optimizer.step() and self.scheduler.step().
 
@@ -374,6 +398,8 @@ class BaseModel(MetaModel, nn.Module):
         self.scheduler.step()
         return True
 
+# he inference method performs distributed inference on the test data using the trained model. It leverages techniques like automatic casting (mixed precision) and distributed data gathering for efficient processing. 
+# The results are collected and post-processed (converted to NumPy arrays) for further analysis or evaluation.
     def inference(self, rank):
         """Inference all the test data.
 
@@ -413,6 +439,8 @@ class BaseModel(MetaModel, nn.Module):
             info_dict[k] = v
         return info_dict
 
+# Overall, the run_train method iterates through the training data, performs a forward pass, calculates loss, updates the model parameters, and logs information.
+# It also periodically saves checkpoints and optionally performs testing and writes test results to TensorBoard.
     @ staticmethod
     def run_train(model):
         """Accept the instance object(model) here, and then run the train loop."""
@@ -449,6 +477,8 @@ class BaseModel(MetaModel, nn.Module):
             if model.iteration >= model.engine_cfg['total_iter']:
                 break
 
+
+# the run_test method performs inference on the test dataset, gathers additional information from the dataset, and calls an evaluation function to calculate metrics or scores.
     @ staticmethod
     def run_test(model):
         """Accept the instance object(model) here, and then run the test loop."""
