@@ -16,10 +16,24 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as tordata
 
+# This library is used for creating progress bars that provide visual feedback during long-running operations.
+# It offers features like displaying the elapsed time, estimated time remaining, and progress percentage.
 from tqdm import tqdm
+
+# This function is a context manager that automatically casts floating-point operations to a lower precision if possible during training.
 from torch.cuda.amp import autocast
+
+# This class helps manage the gradient scaling process in mixed precision training.
+# It addresses issues like underflowing gradients in 16-bit precision by scaling gradients before applying them to the optimizer.
 from torch.cuda.amp import GradScaler
+
+# This module in Python's standard library provides functionalities for defining Abstract Base Classes (ABCs).
+# These classes define interfaces that other classes can inherit from and implement.
+
+# This is a metaclass used to create ABCs.
 from abc import ABCMeta
+
+# This decorator is used to define abstract methods within an ABC. Abstract methods must be implemented by subclasses.
 from abc import abstractmethod
 
 from . import backbones
