@@ -87,7 +87,8 @@ def get_valid_args(obj, input_args, free_keys=[]):
                      (', '.join(unexpect_keys), obj.__name__))
     return expected_args
 
-
+# The provided function get_attr_from retrieves an attribute from a list of objects recursively. Here's a breakdown of how it works:
+# this function attempts to get the specified attribute from the first object in the list. If not found, it keeps trying with the remaining objects one by one until it either finds the attribute or reaches the end of the list.
 def get_attr_from(sources, name):
     try:
         return getattr(sources[0], name)
@@ -122,19 +123,22 @@ def is_tensor(x):
 def is_array(x):
     return isinstance(x, np.ndarray)
 
-
+# this function takes a PyTorch tensor x and returns a new NumPy array containing a copy of the tensor's data on the CPU.
+# This conversion is often necessary when you want to use NumPy functionality on the tensor data or interact with libraries that expect NumPy arrays.
 def ts2np(x):
     return x.cpu().data.numpy()
 
-
+ # this function takes a NumPy array or a PyTorch tensor and converts it into a PyTorch variable suitable for training neural networks with automatic differentiation.
+# The **kwargs arguments allow you to customize the behavior of the variable creation, such as enabling gradients or using volatile variables.
 def ts2var(x, **kwargs):
     return autograd.Variable(x, **kwargs).cuda()
 
-
+# the np2var function acts as a convenience function for converting NumPy arrays to PyTorch variables suitable for training neural networks with automatic differentiation.
 def np2var(x, **kwargs):
     return ts2var(torch.from_numpy(x), **kwargs)
 
-
+# the list2var function provides a way to convert Python lists to PyTorch variables suitable for neural network training.
+# It achieves this by converting the list to a NumPy array first and then leveraging the np2var function for the variable creation process.
 def list2var(x, **kwargs):
     return np2var(np.array(x), **kwargs)
 
@@ -143,7 +147,8 @@ def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-
+# this function merges two dictionaries recursively.
+# It prioritizes values from the source dictionary (src) and merges sub-dictionaries if both source and destination have them. It avoids conflicts by overwriting destination values with source values when necessary.
 def MergeCfgsDict(src, dst):
     for k, v in src.items():
         if (k not in dst.keys()) or (type(v) != type(dict())):
@@ -154,12 +159,13 @@ def MergeCfgsDict(src, dst):
             else:
                 dst[k] = v
 
-
+# the clones function offers a convenient way to create multiple independent copies of a PyTorch module for use in various neural network structures.
 def clones(module, N):
     "Produce N identical layers."
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
-
+# this function provides a way to load configurations from a specified file, merge them with a default configuration file, and return the resulting merged configuration.
+# This approach allows you to override default settings with custom configurations from the provided path.
 def config_loader(path):
     with open(path, 'r') as stream:
         src_cfgs = yaml.safe_load(stream)
@@ -168,7 +174,7 @@ def config_loader(path):
     MergeCfgsDict(src_cfgs, dst_cfgs)
     return dst_cfgs
 
-
+# The provided function init_seeds is designed to initialize random number generators (RNGs) used by various libraries in PyTorch for deterministic behavior.
 def init_seeds(seed=0, cuda_deterministic=True):
     random.seed(seed)
     np.random.seed(seed)
@@ -182,14 +188,16 @@ def init_seeds(seed=0, cuda_deterministic=True):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-
+# this function provides a basic way to handle Ctrl+C/Z interrupts by logging a message and potentially terminating the entire process group.
+# However, a more controlled and safer approach is recommended for production environments.
 def handler(signum, frame):
     logging.info('Ctrl+c/z pressed')
     os.system(
         "kill $(ps aux | grep main.py | grep -v grep | awk '{print $2}') ")
     logging.info('process group flush!')
 
-
+# this function provides a mechanism to collect features from all processes involved in DDP training and combine them into a single tensor. 
+# This can be useful for tasks like calculating global statistics or creating complete representations from distributed partial computations
 def ddp_all_gather(features, dim=0, requires_grad=True):
     '''
         inputs: [n, ...]
@@ -205,7 +213,8 @@ def ddp_all_gather(features, dim=0, requires_grad=True):
     feature = torch.cat(feature_list, dim=dim)
     return feature
 
-
+# the DDPPassthrough class offers a way to access model attributes directly within a DDP context.
+# However, it's crucial to use it cautiously and understand the potential implications for distributed training. Consider the trade-offs between convenience and potential disruptions to DDP optimizations.
 # https://github.com/pytorch/pytorch/issues/16885
 class DDPPassthrough(DDP):
     def __getattr__(self, name):
@@ -214,7 +223,8 @@ class DDPPassthrough(DDP):
         except AttributeError:
             return getattr(self.module, name)
 
-
+# the get_ddp_module function provides a flexible way to conditionally wrap PyTorch modules for DDP training.
+# It offers features like early return for modules without parameters, customizable unused parameter tracking, and additional control through **kwargs.
 def get_ddp_module(module, find_unused_parameters=False, **kwargs):
     if len(list(module.parameters())) == 0:
         # for the case that loss module has not parameters.
@@ -224,7 +234,7 @@ def get_ddp_module(module, find_unused_parameters=False, **kwargs):
                             find_unused_parameters=find_unused_parameters, **kwargs)
     return module
 
-
+# this function provides a simple way to count the parameters in a PyTorch neural network and present the count in a human-readable format suitable for tracking model complexity.
 def params_count(net):
     n_parameters = sum(p.numel() for p in net.parameters())
     return 'Parameters Count: {:.5f}M'.format(n_parameters / 1e6)
