@@ -1,6 +1,29 @@
+# The copy module in Python provides functions for creating copies of objects. There are two main types of copies you can make:
+# Shallow Copy: This creates a new object with the same references to the original object's elements. If the original object contains mutable elements (like lists or dictionaries), changes to the copy will also affect the original.
+# Deep Copy: This creates a new object with entirely new copies of the original object's elements. Changes to the copy won't affect the original and vice versa.
+# The copy module provides the following functions:
+
+# copy.copy(x): Creates a shallow copy of an object x.
+# copy.deepcopy(x): Creates a deep copy of an object x.
+
 import copy
 import os
+
+# The inspect module in Python allows you to examine the live objects within your code at runtime.
+# This means you can get information about functions, classes, modules, tracebacks, and more. Here are some of the key functionalities provided by inspect:
+# Type Checking:
+# inspect.isclass(object): Checks if an object is a class.
+# inspect.isfunction(object): Checks if an object is a function.
+# inspect.ismodule(object): Checks if an object is a module.
+
+# Inspecting Classes and Functions:
+# inspect.getargspec(function): Returns a tuple containing argument information for a function (deprecated in Python 3, use inspect.signature instead).
+# inspect.signature(function): Provides a more detailed analysis of function arguments in Python 3.
+# inspect.getmembers(object): Returns a list of members (e.g., methods, attributes) of an object.
 import inspect
+
+# Log an informational message
+# logger.info("This is an informational message.")
 import logging
 import torch
 import numpy as np
@@ -11,13 +34,14 @@ import random
 from torch.nn.parallel import DistributedDataParallel as DDP
 from collections import OrderedDict, namedtuple
 
-
+# NoOp serves as a placeholder for functionality that does nothing.
 class NoOp:
     def __getattr__(self, *args):
         def no_op(*args, **kwargs): pass
         return no_op
 
-
+# the Odict.append method provides a convenient way to merge contents from another OrderedDict while ensuring that the order of elements is preserved within the current Odict.
+# It also handles cases where values might not be lists initially and converts them for consistent merging behavior.
 class Odict(OrderedDict):
     def append(self, odict):
         dst_keys = self.keys()
@@ -32,7 +56,7 @@ class Odict(OrderedDict):
             else:
                 self[k] = v
 
-
+# the Ntuple function provides a more concise and user-friendly way to create namedtuples in Python, especially when dealing with single key/value scenarios.
 def Ntuple(description, keys, values):
     if not is_list_or_tuple(keys):
         keys = [keys]
@@ -40,7 +64,8 @@ def Ntuple(description, keys, values):
     Tuple = namedtuple(description, keys)
     return Tuple._make(values)
 
-
+# this function helps ensure that you're using the correct arguments for your functions and classes by filtering out any unexpected configurations.
+# It also provides optional logging for unexpected arguments.
 def get_valid_args(obj, input_args, free_keys=[]):
     if inspect.isfunction(obj):
         expected_keys = inspect.getfullargspec(obj)[0]
