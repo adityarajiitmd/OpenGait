@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from ..modules import TemporalBasicBlock, TemporalBottleneckBlock, SpatialBasicBlock, SpatialBottleneckBlock
-
+# a ResGCN architecture for video classification, incorporating spatial and temporal modeling:
 class ResGCNModule(nn.Module):
     """
         ResGCNModule
