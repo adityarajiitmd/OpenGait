@@ -5,6 +5,8 @@ import torch.utils.data as tordata
 import json
 from utils import get_msg_mgr
 
+# data_cfg contains dictionary information 
+# training is a boolean value 
 
 class DataSet(tordata.Dataset):
     def __init__(self, data_cfg, training):
