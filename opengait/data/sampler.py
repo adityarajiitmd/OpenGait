@@ -4,17 +4,22 @@ import torch
 import torch.distributed as dist
 import torch.utils.data as tordata
 
-
+# batch_sample[0] : no. of person id
+# batch_sample[1] : no. of pickle files to be taken
 class TripletSampler(tordata.sampler.Sampler):
+    # Takes the dataset (dataset), batch size (batch_size), and a flag for shuffling (batch_shuffle) as input.
     def __init__(self, dataset, batch_size, batch_shuffle=False):
         self.dataset = dataset
         self.batch_size = batch_size
         if len(self.batch_size) != 2:
             raise ValueError(
+                 # It expects a tuple of length 2 representing the number of positive pairs (batch_size[0]) and the number of negative samples per positive pair (batch_size[1]).
                 "batch_size should be (P x K) not {}".format(batch_size))
         self.batch_shuffle = batch_shuffle
-
+        # Gets the number of GPUs in the distributed setting 
         self.world_size = dist.get_world_size()
+
+        # Validates that the total batch size (batch_size[0] * batch_size[1]) is divisible by the world size to ensure balanced distribution of samples across GPUs.
         if (self.batch_size[0]*self.batch_size[1]) % self.world_size != 0:
             raise ValueError("World size ({}) is not divisible by batch_size ({} x {})".format(
                 self.world_size, batch_size[0], batch_size[1]))
@@ -22,7 +27,9 @@ class TripletSampler(tordata.sampler.Sampler):
 
     def __iter__(self):
         while True:
+            # Initializes an empty list sample_indices to store sample indices for the current batch.
             sample_indices = []
+            # The function sync_random_sample_list (likely a custom function for distributed random sampling) is used to get a list of batch_size[0] unique positive class labels (pid_list).
             pid_list = sync_random_sample_list(
                 self.dataset.label_set, self.batch_size[0])
 
@@ -31,11 +38,12 @@ class TripletSampler(tordata.sampler.Sampler):
                 indices = sync_random_sample_list(
                     indices, k=self.batch_size[1])
                 sample_indices += indices
-
+ # it will shuffle the batch
             if self.batch_shuffle:
                 sample_indices = sync_random_sample_list(
                     sample_indices, len(sample_indices))
 
+            # this is used to work for the whole batch size
             total_batch_size = self.batch_size[0] * self.batch_size[1]
             total_size = int(math.ceil(total_batch_size /
                                        self.world_size)) * self.world_size
@@ -48,9 +56,14 @@ class TripletSampler(tordata.sampler.Sampler):
     def __len__(self):
         return len(self.dataset)
 
-
+# This Python function, likely used within the TripletSampler class, is designed for distributed random sampling in a deep learning training scenario.
 def sync_random_sample_list(obj_list, k, common_choice=False):
+    # obj_list: The list of objects to sample from (e.g., positive class labels in TripletSampler).
+    # k: The number of elements to sample from the list.
+     # A flag indicating whether all GPUs should choose the same random samples (potentially for ensuring consistency).
+    
     if common_choice:
+        # Uses random.choices (Python 3.8+) to sample k elements with replacement from obj_list. This ensures all GPUs get the same random subset.
         idx = random.choices(range(len(obj_list)), k=k) 
         idx = torch.tensor(idx)
     if len(obj_list) < k:
@@ -58,10 +71,18 @@ def sync_random_sample_list(obj_list, k, common_choice=False):
         idx = torch.tensor(idx)
     else:
         idx = torch.randperm(len(obj_list))[:k]
+        # if gpu is available, move idx to suda indexes
     if torch.cuda.is_available():
         idx = idx.cuda()
+
+    # Uses distributed communication (torch.distributed.broadcast) to broadcast the idx tensor from rank 0 (potentially the master process) to
+    # all other ranks (GPUs) in the distributed training setup. This ensures all GPUs have the same sampling indices.
     torch.distributed.broadcast(idx, src=0)
+    # Converts the broadcasted tensor (idx) back to a Python list (idx.tolist()).
     idx = idx.tolist()
+
+    # Uses list comprehension to iterate through the sample indices (idx) and access the corresponding objects from the original list (obj_list).
+# Returns a list containing the sampled objects.
     return [obj_list[i] for i in idx]
 
 
