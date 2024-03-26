@@ -35,18 +35,22 @@ class CollateFn(object):
             self.frames_num_min = sample_config['frames_num_min'] # minimum no. of frames to be taken
 
         if self.sampler != 'all' and self.ordered:
-            self.frames_skip_num = sample_config['frames_skip_num'] 
+            self.frames_skip_num = sample_config['frames_skip_num'] # skip some frames if it is ordered
 
         self.frames_all_limit = -1
         if self.sampler == 'all' and 'frames_all_limit' in sample_config:
-            self.frames_all_limit = sample_config['frames_all_limit']
+            self.frames_all_limit = sample_config['frames_all_limit'] # provides limit to the maximum frames that could get smapled
 
+    # Takes a batch of data samples as input. Each sample likely consists of a sequence and corresponding labels.
     def __call__(self, batch):
         batch_size = len(batch)
         # currently, the functionality of feature_num is not fully supported yet, it refers to 1 now. We are supposed to make our framework support multiple source of input data, such as silhouette, or skeleton.
-        feature_num = len(batch[0][0])
-        seqs_batch, labs_batch, typs_batch, vies_batch = [], [], [], []
+        feature_num = len(batch[0][0]) #number of features per sample
 
+        # Initializes empty lists for sequences, labels, types, and views (potentially different data modalities).
+# Iterates through the batch, extracting sequences, labels, types, and views for each sample.
+        seqs_batch, labs_batch, typs_batch, vies_batch = [], [], [], []
+# data is modeled in such a way
         for bt in batch:
             seqs_batch.append(bt[0])
             labs_batch.append(self.label_set.index(bt[1][0]))
@@ -55,7 +59,7 @@ class CollateFn(object):
 
         global count
         count = 0
-
+        # to get sampled frames
         def sample_frames(seqs):
             global count
             sampled_fras = [[] for i in range(feature_num)]
