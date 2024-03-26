@@ -2,14 +2,22 @@ import math
 import random
 import numpy as np
 from utils import get_msg_mgr
+# this is used to create batches for training
 
-
+# label_set: Likely a list containing all possible labels.
+# sample_config: A dictionary containing configuration details for sample selection.
 class CollateFn(object):
     def __init__(self, label_set, sample_config):
+        # this is used for labelling
         self.label_set = label_set
+
+        # we are extracting sample type from congiuration details
         sample_type = sample_config['sample_type']
         sample_type = sample_type.split('_')
+        # this will take care of the sampler
         self.sampler = sample_type[0]
+
+        # this will take care of the order in which the sampling is done
         self.ordered = sample_type[1]
         if self.sampler not in ['fixed', 'unfixed', 'all']:
             raise ValueError
@@ -19,15 +27,15 @@ class CollateFn(object):
 
         # fixed cases
         if self.sampler == 'fixed':
-            self.frames_num_fixed = sample_config['frames_num_fixed']
+            self.frames_num_fixed = sample_config['frames_num_fixed'] # no. of frames to be taken
 
         # unfixed cases
         if self.sampler == 'unfixed':
-            self.frames_num_max = sample_config['frames_num_max']
-            self.frames_num_min = sample_config['frames_num_min']
+            self.frames_num_max = sample_config['frames_num_max'] # maximum no. of frames to be taken
+            self.frames_num_min = sample_config['frames_num_min'] # minimum no. of frames to be taken
 
         if self.sampler != 'all' and self.ordered:
-            self.frames_skip_num = sample_config['frames_skip_num']
+            self.frames_skip_num = sample_config['frames_skip_num'] 
 
         self.frames_all_limit = -1
         if self.sampler == 'all' and 'frames_all_limit' in sample_config:
